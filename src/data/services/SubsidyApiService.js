@@ -14,7 +14,7 @@ class SubsidyApiService {
     const subsidiesURL = `${getConfig().SUBSIDY_BASE_URL}/api/v1/subsidies/`;
     const optionalUrlParams = new URLSearchParams(snakeCaseObject({
       pageSize,
-      sortBy: sortBy ? snakeCase(sortBy) : 'uuid',
+      sortBy: sortBy ? sortBy : 'uuid',
       ...filteredData,
     })).toString();
     return SubsidyApiService.apiClient().get(`${subsidiesURL}?page=${pageIndex}&${optionalUrlParams}`);

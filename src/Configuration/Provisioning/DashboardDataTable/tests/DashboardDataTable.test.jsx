@@ -1,21 +1,27 @@
 /* eslint-disable react/prop-types */
 import { renderWithRouter } from '@edx/frontend-enterprise-utils';
-import { screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { camelCaseObject } from '@edx/frontend-platform';
 import { DashboardContext, initialStateValue } from '../../../testData/Dashboard';
 import DashboardDataTable from '../DashboardDataTable';
 import { sampleDataTableData } from '../../../testData/constants';
+import SubsidyApiService from '../../../../data/services/SubsidyApiService'
 
 // Mock the debounce function
 jest.mock('lodash.debounce', () => jest.fn((fn) => fn));
 
+const mockedNavigator = jest.fn();
+
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  useNavigate: () => mockedNavigator,
+}));
+
 // Mock the subsidy list
 const mockGetAllSubsidiesData = sampleDataTableData(10);
-jest.mock('../../../../data/services/SubsidyApiService', () => ({
-  getAllSubsidies: () => Promise.resolve({
-    data: mockGetAllSubsidiesData,
-  }),
-}));
+const apiMock = jest
+  .spyOn(SubsidyApiService, 'getAllSubsidies')
+  .mockImplementation(() => Promise.resolve({ data: mockGetAllSubsidiesData }));
 
 // Mock the enterprise customers list
 const mockCustomerData = camelCaseObject(mockGetAllSubsidiesData).results.map((subsidy) => ({
@@ -45,5 +51,26 @@ describe('DashboardDatatable', () => {
     renderWithRouter(<DashboardDatatableWrapper />);
     expect(screen.getByText('loading')).toBeTruthy();
     await waitFor(() => expect(screen.getByText('Enterprise Customer 1')).toBeTruthy());
+  });
+});
+
+describe('DashboardDatatable SortBy', ()=> {
+  it('sorts the data asc and desc', async ()=> {
+    renderWithRouter(<DashboardDatatableWrapper />);
+    const tableHeader = screen.getByText('Start date');
+
+    fireEvent.click(tableHeader);
+    await waitFor(() => expect(apiMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sortBy: 'active_datetime'
+      })
+    ));
+
+    fireEvent.click(tableHeader);
+    await waitFor(() => expect(apiMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sortBy: '-active_datetime'
+      })
+    ));
   });
 });
